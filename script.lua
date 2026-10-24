@@ -1,123 +1,53 @@
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 
--- Create HUD
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player:WaitForChild("PlayerGui")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 400)
-frame.Position = UDim2.new(0.05, 0, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 2
-frame.Parent = screenGui
-frame.Active = true
-frame.Draggable = true -- Movable HUD
+-- Создаем интерфейс
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ObjectNameGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.1, 0)
-title.BackgroundTransparency = 1
-title.Text = "Object & NPC Detector"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.SourceSansBold
-title.TextScaled = true
-title.Parent = frame
+-- Создаем кнопку
+local Button = Instance.new("TextButton")
+Button.Name = "ObjectNameButton"
+Button.Size = UDim2.new(0, 220, 0, 55)
+Button.Position = UDim2.new(0.5, -110, 0.8, 0)
+Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.TextSize = 18
+Button.Font = Enum.Font.GothamBold
+Button.Text = "Узнать название"
+Button.Parent = ScreenGui
 
-local searchBox = Instance.new("TextBox")
-searchBox.Size = UDim2.new(1, -10, 0.1, 0)
-searchBox.Position = UDim2.new(0, 5, 0.1, 0)
-searchBox.PlaceholderText = "Search objects..."
-searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-searchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-searchBox.Parent = frame
+-- Скругление кнопки
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = Button
 
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -10, 0.65, 0)
-scrollFrame.Position = UDim2.new(0, 5, 0.22, 0)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
-scrollFrame.ScrollBarThickness = 5
-scrollFrame.Parent = frame
+-- Переменная для выбранного объекта
+local SelectedObject = nil
 
-local refreshButton = Instance.new("TextButton")
-refreshButton.Size = UDim2.new(1, -10, 0.1, 0)
-refreshButton.Position = UDim2.new(0, 5, 0.9, 0)
-refreshButton.Text = "Refresh List"
-refreshButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-refreshButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-refreshButton.Font = Enum.Font.SourceSansBold
-refreshButton.Parent = frame
+-- Нажатие на объект
+mouse.Button1Down:Connect(function()
+    local Target = mouse.Target
 
-local objectList = {}
+    if Target then
+        SelectedObject = Target
+        print("Выбран объект:", Target.Name)
+    end
+end)
 
--- Function to classify object type
-local function getObjectType(obj)
-    if obj:IsA("Model") then
-        if obj:FindFirstChildOfClass("Humanoid") then
-            return "NPC"
-        else
-            return "Object"
-        end
-    elseif obj:IsA("BasePart") then
-        return "Physical Object"
-    elseif obj:IsA("Tool") then
-        return "Collectible"
-    elseif obj:IsA("ProximityPrompt") then
-        return "Interactable"
-    elseif obj:IsA("RemoteEvent") then
-        return "Scripted Event"
+-- Нажатие на кнопку
+Button.Activated:Connect(function()
+    if SelectedObject then
+        Button.Text = SelectedObject.Name
+
+        print("Название:", SelectedObject.Name)
+        print("Путь:", SelectedObject:GetFullName())
     else
-        return "Unknown"
+        Button.Text = "Сначала выбери предмет"
     end
-end
-
--- Function to update UI
-local function updateUI()
-    local searchText = searchBox.Text:lower()
-    local yOffset = 0
-
-    for name, data in pairs(objectList) do
-        local label = data.label
-        if searchText == "" or name:lower():find(searchText) then
-            label.Visible = true
-            label.Position = UDim2.new(0, 0, 0, yOffset)
-            yOffset = yOffset + 25
-        else
-            label.Visible = false
-        end
-    end
-
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, yOffset)
-end
-
--- Function to scan objects only when button is pressed
-local function scanObjects()
-    -- Clear old labels
-    for _, data in pairs(objectList) do
-        if data.label then data.label:Destroy() end
-    end
-    objectList = {}
-
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("BasePart") or obj:IsA("Tool") or obj:IsA("ProximityPrompt") then
-            local objType = getObjectType(obj)
-            local objName = obj.Name .. " (" .. objType .. ")"
-
-            -- Create label
-            local objLabel = Instance.new("TextLabel")
-            objLabel.Size = UDim2.new(1, 0, 0, 25)
-            objLabel.Text = objName
-            objLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            objLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            objLabel.Parent = scrollFrame
-
-            objectList[objName] = {instance = obj, label = objLabel}
-        end
-    end
-
-    updateUI()
-end
-
--- Connect button click event
-refreshButton.MouseButton1Click:Connect(scanObjects)
-
--- Search box event
-searchBox.Changed:Connect(updateUI)
+end)
